@@ -19,7 +19,7 @@ on:
         default: 'Bash(gh:*),Bash(grep:*),Bash(sed:*),Read,Glob,Grep'
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
-        required: true
+        required: false
 
 jobs:
   claude-review:
