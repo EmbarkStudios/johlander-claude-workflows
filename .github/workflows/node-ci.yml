@@ -1,0 +1,136 @@
+name: Node CI
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        type: string
+        default: '20'
+      lint_command:
+        description: 'Lint command to run (empty to skip)'
+        required: false
+        type: string
+        default: 'npm run lint'
+      typecheck_command:
+        description: 'Type-check command to run (empty to skip)'
+        required: false
+        type: string
+        default: 'npx tsc --noEmit'
+      build_command:
+        description: 'Build command to run (empty to skip)'
+        required: false
+        type: string
+        default: ''
+      test_command:
+        description: 'Test command to run (empty to skip)'
+        required: false
+        type: string
+        default: ''
+      test_runs_on:
+        description: 'Runner for test job (e.g. windows-latest for Electron)'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      security_audit:
+        description: 'Run npm audit'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  lint:
+    name: Lint & Format
+    if: inputs.lint_command != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: ${{ inputs.lint_command }}
+
+  type-check:
+    name: Type Check
+    if: inputs.typecheck_command != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: ${{ inputs.typecheck_command }}
+
+  test:
+    name: Tests
+    if: inputs.test_command != ''
+    runs-on: ${{ inputs.test_runs_on }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: ${{ inputs.test_command }}
+
+  security-audit:
+    name: Security Audit
+    if: inputs.security_audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --omit=dev
+
+  build-validation:
+    name: Build Validation
+    if: inputs.build_command != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: ${{ inputs.build_command }}
