@@ -10,7 +10,7 @@ on:
         default: ''
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
-        required: true
+        required: false
 
 jobs:
   claude:
