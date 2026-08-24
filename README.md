@@ -6,7 +6,7 @@ Reusable GitHub Actions workflows for CI/CD and Claude Code integration.
 
 ### Claude Code Review (`claude-code-review.yml`)
 
-Automatic AI-powered code review on pull requests using the Claude Code Review plugin.
+Automatic multi-agent review on pull requests using Anthropic's Claude Code Review plugin. Dependabot pull requests are skipped, and the plugin owns its review prompt, tool permissions, comments, and inline findings.
 
 **Usage:**
 
@@ -29,9 +29,11 @@ jobs:
 
 | Input | Default | Description |
 |---|---|---|
-| `max_turns` | `30` | Maximum number of Claude turns |
-| `review_prompt` | _(auto-generated)_ | Custom review prompt |
-| `allowed_tools` | `Bash(gh:*),Bash(grep:*),Bash(sed:*),Read,Glob,Grep` | Claude allowed tools |
+| `max_turns` | `50` | Maximum number of Claude turns |
+| `review_prompt` | _(ignored)_ | Deprecated compatibility input |
+| `allowed_tools` | _(ignored)_ | Deprecated compatibility input |
+
+The reviewer invokes `/code-review:code-review --comment` directly. Action-generated fix links and tracking comments are disabled so they cannot consume turns or cause the plugin's existing-comment guard to skip the active review.
 
 ### Claude Code Interactive (`claude-interactive.yml`)
 

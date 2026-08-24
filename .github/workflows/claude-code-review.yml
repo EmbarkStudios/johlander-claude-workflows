@@ -7,22 +7,22 @@ on:
         description: 'Maximum number of Claude turns'
         required: false
         type: number
-        default: 30
+        default: 50
       review_prompt:
-        description: 'Custom review prompt (overrides default)'
+        description: 'Deprecated compatibility input; the Anthropic code-review command is always used'
         required: false
         type: string
       allowed_tools:
-        description: 'Claude allowed tools'
+        description: 'Deprecated compatibility input; the Anthropic code-review plugin owns its tool allowlist'
         required: false
         type: string
-        default: 'Bash(gh:*),Bash(grep:*),Bash(sed:*),Read,Glob,Grep'
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
 
 jobs:
   claude-review:
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -35,7 +35,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 1
+          # Anthropic's reviewer uses git blame/history for one review lane.
+          fetch-depth: 0
 
       - name: Run Claude Code Review
         id: claude-review
@@ -44,8 +45,13 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: ${{ inputs.review_prompt || format('/code-review:code-review {0}/pull/{1}', github.repository, github.event.pull_request.number) }}
-          claude_args: '--max-turns ${{ inputs.max_turns }} --allowedTools ${{ inputs.allowed_tools }}'
-          track_progress: true
-          include_fix_links: true
+          prompt: ${{ format('/code-review:code-review {0}/pull/{1} --comment', github.repository, github.event.pull_request.number) }}
+          # Agent mode needs the inline-comment tool named up front so the
+          # action provisions its MCP server. The plugin supplies the rest of
+          # its narrow tool allowlist from the command frontmatter.
+          claude_args: '--max-turns ${{ inputs.max_turns }} --allowedTools mcp__github_inline_comment__create_inline_comment'
+          # The plugin skips PRs with an existing Claude comment. A tracking
+          # placeholder would therefore make every review skip itself.
+          track_progress: false
+          include_fix_links: false
           show_full_output: true
