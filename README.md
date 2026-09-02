@@ -6,7 +6,7 @@ Reusable GitHub Actions workflows for CI/CD and Claude Code integration.
 
 ### Claude Code Review (`claude-code-review.yml`)
 
-Automatic multi-agent review on pull requests using Anthropic's Claude Code Review plugin. Dependabot pull requests are skipped, and the plugin owns its review prompt, tool permissions, comments, and inline findings.
+Automatic pull-request review using a direct Claude prompt modeled on Anthropic's GitHub Actions review example. Dependabot pull requests are skipped. Claude posts specific findings inline and always leaves a top-level summary tied to the workflow run and PR head.
 
 **Usage:**
 
@@ -29,11 +29,11 @@ jobs:
 
 | Input | Default | Description |
 |---|---|---|
-| `max_turns` | `50` | Maximum number of Claude turns |
-| `review_prompt` | _(ignored)_ | Deprecated compatibility input |
-| `allowed_tools` | _(ignored)_ | Deprecated compatibility input |
+| `max_turns` | `100` | Maximum number of Claude turns |
+| `review_prompt` | _(empty)_ | Additional instructions appended to the default review prompt |
+| `allowed_tools` | Broad review access | Comma-separated Claude tools pre-approved for the review session |
 
-The reviewer invokes `/code-review:code-review --comment` directly. Action-generated fix links and tracking comments are disabled so they cannot consume turns or cause the plugin's existing-comment guard to skip the active review.
+The default tool set pre-approves shell, repository inspection, web lookup, file operations, and GitHub inline comments to avoid unattended permission stalls. The review prompt remains explicitly read-only apart from comments on the current PR: it forbids edits, commits, pushes, branches, PR state or metadata changes, background agents, and scheduled wakeups. Progress tracking is enabled, while full Claude execution output is disabled to keep tool results and sensitive values out of Actions logs.
 
 ### Claude Code Interactive (`claude-interactive.yml`)
 
