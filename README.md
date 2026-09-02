@@ -33,7 +33,7 @@ jobs:
 | `review_prompt` | _(empty)_ | Additional instructions appended to the default review prompt |
 | `allowed_tools` | Broad review access | Comma-separated Claude tools pre-approved for the review session |
 
-The default tool set pre-approves shell, repository inspection, web lookup, file operations, and GitHub inline comments to avoid unattended permission stalls. The review prompt remains explicitly read-only: it forbids edits, commits, pushes, branches, background agents, and scheduled wakeups. Progress tracking is enabled, while full Claude execution output is disabled to keep tool results and sensitive values out of Actions logs.
+The default tool set pre-approves shell, repository inspection, web lookup, file operations, and GitHub inline comments to avoid unattended permission stalls. The review prompt remains explicitly read-only apart from comments on the current PR: it forbids edits, commits, pushes, branches, PR state or metadata changes, background agents, and scheduled wakeups. Progress tracking is enabled, while full Claude execution output is disabled to keep tool results and sensitive values out of Actions logs.
 
 ### Claude Code Interactive (`claude-interactive.yml`)
 
