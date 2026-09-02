@@ -7,15 +7,16 @@ on:
         description: 'Maximum number of Claude turns'
         required: false
         type: number
-        default: 50
+        default: 100
       review_prompt:
-        description: 'Deprecated compatibility input; the Anthropic code-review command is always used'
+        description: 'Additional instructions appended to the default review prompt'
         required: false
         type: string
       allowed_tools:
-        description: 'Deprecated compatibility input; the Anthropic code-review plugin owns its tool allowlist'
+        description: 'Claude tools pre-approved for the review session'
         required: false
         type: string
+        default: 'Agent,Bash,Edit,Glob,Grep,NotebookEdit,Read,Skill,TaskOutput,TaskStop,TodoWrite,ToolSearch,WebFetch,WebSearch,Write,mcp__github_inline_comment__create_inline_comment'
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -35,7 +36,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          # Anthropic's reviewer uses git blame/history for one review lane.
+          # Preserve history so Claude can inspect blame and earlier changes.
           fetch-depth: 0
 
       - name: Run Claude Code Review
@@ -43,15 +44,32 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: ${{ format('/code-review:code-review {0}/pull/{1} --comment', github.repository, github.event.pull_request.number) }}
-          # Agent mode needs the inline-comment tool named up front so the
-          # action provisions its MCP server. The plugin supplies the rest of
-          # its narrow tool allowlist from the command frontmatter.
-          claude_args: '--max-turns ${{ inputs.max_turns }} --allowedTools mcp__github_inline_comment__create_inline_comment'
-          # The plugin skips PRs with an existing Claude comment. A tracking
-          # placeholder would therefore make every review skip itself.
-          track_progress: false
+          prompt: |
+            REPOSITORY: ${{ github.repository }}
+            PULL REQUEST: ${{ github.event.pull_request.number }}
+            HEAD SHA: ${{ github.event.pull_request.head.sha }}
+            RUN ID: ${{ github.run_id }}
+
+            Perform a comprehensive code review of this pull request. Inspect
+            the full diff and relevant surrounding code, history, tests, and
+            repository guidance. Focus on correctness, regressions, security,
+            error handling, maintainability, and missing behavioral coverage.
+            Only report actionable findings that were introduced by this PR.
+
+            Work directly in this session. Do not launch background agents,
+            schedule wakeups, edit files, commit, push, or create branches.
+
+            Post specific findings as inline comments with
+            mcp__github_inline_comment__create_inline_comment. Always post one
+            top-level summary with `gh pr comment`, including this marker:
+            <!-- claude-code-review:${{ github.run_id }}:${{ github.event.pull_request.head.sha }} -->
+            If there are no findings, say that explicitly in the summary.
+
+            Additional review instructions:
+            ${{ inputs.review_prompt }}
+          claude_args: >-
+            --max-turns ${{ inputs.max_turns }}
+            --allowedTools "${{ inputs.allowed_tools }}"
+          track_progress: true
           include_fix_links: false
-          show_full_output: true
+          show_full_output: false
